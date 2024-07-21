@@ -3,8 +3,8 @@ from collections import defaultdict
 # User Input
 # Schedule of rest and night periods where the number is the number day of a session
 rest_night_periods = ['R1', 'N1A','N1B', 'R2', 'N2A', 'N2B', 'R3', 'N3A', 'N3B', 'R4', 'N4A', 'N4B', 'R5', 'N5A', 'N5B', 
-                      'R6', 'N6A', 'N6B', 'N7A', 'N7B', 'R8', 'N8A', 'N8B', 'R9', 'N9A', 'N9B', 'R10', 'N10A', 'N10B',
-                      'R11', 'N11A', 'N11B', 'R12', 'N12A', 'N12B', 'N13A', 'N13B', 'R14', 'N14A', 'N14B',
+                      'R6', 'N6A', 'N7A', 'N7B', 'R8', 'N8A', 'N8B', 'R9', 'N9A', 'N9B', 'R10', 'N10A', 'N10B',
+                      'R11', 'N11A', 'N11B', 'R12', 'N12A', 'N13A', 'N13B', 'R14', 'N14A', 'N14B',
                       'R15', 'N15A', 'N15B', 'R16', 'N16A', 'N16B', 'R17', 'N17A', 'N17B', 'R18', 'N18A', 'N18B',
                       'R19', 'N19A', 'N19B', 'R20']
 
@@ -12,21 +12,22 @@ rest_night_periods = ['R1', 'N1A','N1B', 'R2', 'N2A', 'N2B', 'R3', 'N3A', 'N3B',
 # Differentiate counselors that have the same off days by 1 or 2
 counselors_off_days = {
     'Counselor A1': [3, 10],
-    'Counselor A2': [3, 10],
     'Counselor B1': [5, 12],
     'Counselor B2': [5, 12],
     'Counselor C1': [7, 13],
-    'Counselor C2': [7, 13]
+    'Counselor C2': [7, 13],
+    'Counselor C3': [7, 13],
+    'Counselor C4': [7, 13]
 }
 
 # 7 counselors rotating through rest periods
-rest_counselors = ['Counselor A1', 'Counselor B1', 'Counselor C1', 'Counselor A2', 'Counselor B2', 'Counselor C2']
+rest_counselors = ['Counselor A1', 'Counselor B1', 'Counselor B2', 'Counselor C1', 'Counselor C2', 'Counselor C3', 'Counselor C4']
 
 # 4 counselors for night shifts in cabin A
-night_counselors_A = ['Counselor A1', 'Counselor B1', 'Counselor C1']
+night_counselors_O = ['Counselor A1', 'Counselor B1', 'Counselor C1', 'Counselor C3']
 
 # 3 counselors for night shifts in cabin B
-night_counselors_B = ['Counselor A2', 'Counselor B2', 'Counselor C2']
+night_counselors_E = ['Counselor B2', 'Counselor C2', 'Counselor C4']
 
 # Function to check if a counselor can be assigned to a specific period
 def can_assign(counselor, period, day, assignments):
@@ -39,10 +40,16 @@ def can_assign(counselor, period, day, assignments):
     # Check if the counselor is already assigned to a night shift the day before or the day after
     if period.startswith('N') and (f'N{day - 1}' in assignments[counselor] or f'N{day + 1}' in assignments[counselor]):
         return False, f"{counselor} is already assigned to a night shift the day before or the day after day {day}"
+    # Check if the counselor is already assigned to a night shift on the same day but different cabin
+    if period.startswith('N') and any(f'N{day}' in p for p in assignments[counselor]):
+        return False, f"{counselor} is already assigned to a night shift on day {day}"
+    # Check for back-to-back night shifts
+    if period.startswith('N') and (f'N{day - 1}A' in assignments[counselor] or f'N{day - 1}B' in assignments[counselor] or f'N{day + 1}A' in assignments[counselor] or f'N{day + 1}B' in assignments[counselor]):
+        return False, f"{counselor} is assigned to back-to-back night shifts on day {day}"
     return True, ""
 
 # Backtracking function to assign counselors to periods
-def assign_periods(periods, assignments, rest_counselors, night_counselors_A, night_counselors_B, rest_count, night_count_A, night_count_B, total_count, period_index=0):
+def assign_periods(periods, assignments, rest_counselors, night_counselors_O, night_counselors_B, rest_count, night_count_O, night_count_E, total_count, period_index=0):
     if period_index == len(periods):
         return True
 
@@ -54,11 +61,11 @@ def assign_periods(periods, assignments, rest_counselors, night_counselors_A, ni
         counselors = rest_counselors
         count = rest_count
     elif period_type == 'A':
-        counselors = night_counselors_A
-        count = night_count_A
+        counselors = night_counselors_O
+        count = night_count_O
     else:
-        counselors = night_counselors_B
-        count = night_count_B
+        counselors = night_counselors_E
+        count = night_count_E
 
     for counselor in sorted(counselors, key=lambda c: (count[c], total_count[c])):
         can_assign_result, reason = can_assign(counselor, period, day, assignments)
@@ -67,7 +74,7 @@ def assign_periods(periods, assignments, rest_counselors, night_counselors_A, ni
             count[counselor] += 1
             total_count[counselor] += 1
 
-            if assign_periods(periods, assignments, rest_counselors, night_counselors_A, night_counselors_B, rest_count, night_count_A, night_count_B, total_count, period_index + 1):
+            if assign_periods(periods, assignments, rest_counselors, night_counselors_O, night_counselors_E, rest_count, night_count_O, night_count_E, total_count, period_index + 1):
                 return True
 
             assignments[counselor].remove(period)
@@ -82,17 +89,17 @@ def assign_periods(periods, assignments, rest_counselors, night_counselors_A, ni
 def assign_counselors(rest_night_periods, counselors_off_days):
     assignments = defaultdict(list)
     rest_count = defaultdict(int)
-    night_count_A = defaultdict(int)
-    night_count_B = defaultdict(int)
+    night_count_O = defaultdict(int)
+    night_count_E = defaultdict(int)
     total_count = defaultdict(int)
 
-    if not assign_periods(rest_night_periods, assignments, rest_counselors, night_counselors_A, night_counselors_B, rest_count, night_count_A, night_count_B, total_count):
+    if not assign_periods(rest_night_periods, assignments, rest_counselors, night_counselors_O, night_counselors_E, rest_count, night_count_O, night_count_E, total_count):
         print("Failed to assign all periods to counselors")
 
-    return dict(assignments), rest_count, night_count_A, night_count_B, total_count
+    return dict(assignments), rest_count, night_count_O, night_count_E, total_count
 
 # Assign counselors
-assignments, rest_count, night_count_A, night_count_B, total_assignments = assign_counselors(rest_night_periods, counselors_off_days)
+assignments, rest_count, night_count_O, night_count_E, total_assignments = assign_counselors(rest_night_periods, counselors_off_days)
 
 # Create a mapping from periods to counselors
 period_to_counselor = {}
@@ -111,7 +118,7 @@ for period in sorted_periods:
 # Display the count of rest and night shifts for each counselor
 print("\nCounselor Assignments:")
 for counselor in sorted(rest_count.keys()):
-    print(f"{counselor}: {rest_count[counselor]} rests, {night_count_A[counselor]} nights in Cabin A, {night_count_B[counselor]} nights in Cabin B")
+    print(f"{counselor}: {rest_count[counselor]} rests, {night_count_O[counselor]} nights in Cabin O, {night_count_E[counselor]} nights in Cabin E")
 
 # Tests
 for counselor, periods in assignments.items():
