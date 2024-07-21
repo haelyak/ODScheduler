@@ -2,11 +2,11 @@ from collections import defaultdict
 
 # User Input
 # Schedule of rest and night periods where the number is the number day of a session
-rest_night_periods = ['R1', 'N1A','N1B', 'R2', 'N2A', 'N2B', 'R3', 'N3A', 'N3B', 'R4', 'N4A', 'N4B', 'R5', 'N5A', 'N5B', 
-                      'R6', 'N6A', 'N7A', 'N7B', 'R8', 'N8A', 'N8B', 'R9', 'N9A', 'N9B', 'R10', 'N10A', 'N10B',
-                      'R11', 'N11A', 'N11B', 'R12', 'N12A', 'N13A', 'N13B', 'R14', 'N14A', 'N14B',
-                      'R15', 'N15A', 'N15B', 'R16', 'N16A', 'N16B', 'R17', 'N17A', 'N17B', 'R18', 'N18A', 'N18B',
-                      'R19', 'N19A', 'N19B', 'R20']
+rest_night_periods = ['R1', 'N1O','N1E', 'R2', 'N2O', 'N2E', 'R3', 'N3O', 'N3E', 'R4', 'N4O', 'N4E', 'R5', 'N5O', 'N5E', 
+                      'R6', 'N6O', 'N7O', 'N7E', 'R8', 'N8O', 'N8E', 'R9', 'N9O', 'N9E', 'R10', 'N10O', 'N10E',
+                      'R11', 'N11O', 'N11E', 'R12', 'N12O', 'N13O', 'N13E', 'R14', 'N14O', 'N14E',
+                      'R15', 'N15O', 'N15E', 'R16', 'N16O', 'N16E', 'R17', 'N17O', 'N17E', 'R18', 'N18O', 'N18E',
+                      'R19', 'N19O', 'N19E', 'R20']
 
 # List of days that counselors are not on duty
 # Differentiate counselors that have the same off days by 1 or 2
@@ -23,10 +23,10 @@ counselors_off_days = {
 # 7 counselors rotating through rest periods
 rest_counselors = ['Counselor A1', 'Counselor B1', 'Counselor B2', 'Counselor C1', 'Counselor C2', 'Counselor C3', 'Counselor C4']
 
-# 4 counselors for night shifts in cabin A
+# 4 counselors for night shifts in cabin O
 night_counselors_O = ['Counselor A1', 'Counselor B1', 'Counselor C1', 'Counselor C3']
 
-# 3 counselors for night shifts in cabin B
+# 3 counselors for night shifts in cabin E
 night_counselors_E = ['Counselor B2', 'Counselor C2', 'Counselor C4']
 
 # Function to check if a counselor can be assigned to a specific period
@@ -44,23 +44,23 @@ def can_assign(counselor, period, day, assignments):
     if period.startswith('N') and any(f'N{day}' in p for p in assignments[counselor]):
         return False, f"{counselor} is already assigned to a night shift on day {day}"
     # Check for back-to-back night shifts
-    if period.startswith('N') and (f'N{day - 1}A' in assignments[counselor] or f'N{day - 1}B' in assignments[counselor] or f'N{day + 1}A' in assignments[counselor] or f'N{day + 1}B' in assignments[counselor]):
+    if period.startswith('N') and (f'N{day - 1}O' in assignments[counselor] or f'N{day - 1}E' in assignments[counselor] or f'N{day + 1}O' in assignments[counselor] or f'N{day + 1}E' in assignments[counselor]):
         return False, f"{counselor} is assigned to back-to-back night shifts on day {day}"
     return True, ""
 
 # Backtracking function to assign counselors to periods
-def assign_periods(periods, assignments, rest_counselors, night_counselors_O, night_counselors_B, rest_count, night_count_O, night_count_E, total_count, period_index=0):
+def assign_periods(periods, assignments, rest_counselors, night_counselors_O, night_counselors_E, rest_count, night_count_O, night_count_E, total_count, period_index=0):
     if period_index == len(periods):
         return True
 
     period = periods[period_index]
     day = int(''.join(filter(str.isdigit, period)))
-    period_type = 'R' if period.startswith('R') else ('A' if period.endswith('A') else 'B')
+    period_type = 'R' if period.startswith('R') else ('O' if period.endswith('O') else 'E')
 
     if period_type == 'R':
         counselors = rest_counselors
         count = rest_count
-    elif period_type == 'A':
+    elif period_type == 'O':
         counselors = night_counselors_O
         count = night_count_O
     else:
